@@ -41,7 +41,7 @@ dependencies = [
     
     # GUI Visualization for Training
     "pygame>=2.5.0",
-    "matplotlib>=3.8.0",
+    "matplotlib>=3.7.4,<3.8.0",
     
     # Utilities
     "numpy>=1.26.0",
