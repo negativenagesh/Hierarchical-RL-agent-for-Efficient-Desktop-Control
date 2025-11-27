@@ -33,19 +33,38 @@ class VisualEncoder(nn.Module):
         
         # Load CLIP model - more powerful than EfficientNet
         logger.info("Loading CLIP ViT-B/16 model for visual encoding...")
-        logger.info("NOTE: First run will download ~350MB model from OpenAI servers")
-        logger.info("Model will be cached in ~/.cache/clip for future use")
         
         try:
             import os
-            cache_path = os.path.expanduser("~/.cache/clip")
-            if os.path.exists(cache_path):
-                logger.info(f"Using cached CLIP model from {cache_path}")
-            else:
-                logger.info("Downloading CLIP model (this may take a few minutes)...")
+            from pathlib import Path
             
-            self.clip_model, self.preprocess = clip.load("ViT-B/16", device=device, download_root=cache_path)
-            logger.info("CLIP model loaded successfully")
+            # Check for local model first
+            project_root = Path(__file__).parent.parent.parent
+            local_clip_path = project_root / "clip-ViT-B-16" / "0_CLIPModel"
+            
+            if local_clip_path.exists():
+                logger.info(f"Loading CLIP model from local directory: {local_clip_path}")
+                from transformers import CLIPModel, CLIPProcessor
+                
+                # Load using HuggingFace transformers
+                self.clip_model_hf = CLIPModel.from_pretrained(str(local_clip_path)).to(device)
+                self.clip_processor = CLIPProcessor.from_pretrained(str(local_clip_path))
+                self.use_hf = True
+                logger.info("CLIP model loaded successfully from local directory")
+            else:
+                logger.info("Local CLIP model not found, using OpenAI CLIP library")
+                logger.info("NOTE: First run will download ~350MB model from OpenAI servers")
+                cache_path = os.path.expanduser("~/.cache/clip")
+                if os.path.exists(cache_path):
+                    logger.info(f"Using cached CLIP model from {cache_path}")
+                else:
+                    logger.info("Downloading CLIP model (this may take a few minutes)...")
+                
+                self.clip_model, self.preprocess = clip.load("ViT-B/16", device=device, download_root=cache_path)
+                self.use_hf = False
+                logger.info("CLIP model loaded successfully")
+                
+                
         except Exception as e:
             logger.error(f"Failed to load CLIP model: {e}")
             logger.error("Please check your internet connection or manually download the model")
@@ -53,13 +72,18 @@ class VisualEncoder(nn.Module):
         
         if freeze_backbone:
             # Freeze CLIP backbone to save memory and training time
-            for param in self.clip_model.parameters():
-                param.requires_grad = False
+            if self.use_hf:
+                for param in self.clip_model_hf.vision_model.parameters():
+                    param.requires_grad = False
+            else:
+                for param in self.clip_model.parameters():
+                    param.requires_grad = False
             logger.info("CLIP visual encoder frozen")
         
-        # CLIP outputs 512-dim embeddings, add projection layer
+        # CLIP outputs: HF=768-dim, OpenAI=512-dim. Create adaptive projection
+        clip_output_dim = 768 if self.use_hf else 512
         self.projection = nn.Sequential(
-            nn.Linear(512, 768),
+            nn.Linear(clip_output_dim, 768),
             nn.LayerNorm(768),
             nn.GELU(),
             nn.Dropout(0.1),
@@ -67,7 +91,7 @@ class VisualEncoder(nn.Module):
         ).to(device)
         
         self.visual_dim = 512
-        logger.info(f"VisualEncoder initialized (output_dim={self.visual_dim})")
+        logger.info(f"VisualEncoder initialized (output_dim={self.visual_dim}, CLIP_dim={clip_output_dim})")
         
     def forward(self, images: torch.Tensor) -> torch.Tensor:
         """
@@ -83,10 +107,28 @@ class VisualEncoder(nn.Module):
         # Ensure images are on correct device
         images = images.to(self.device)
         
-        # CLIP preprocessing is already applied in environment
         # Extract visual features using CLIP image encoder
         with torch.no_grad() if not self.training else torch.enable_grad():
-            visual_features = self.clip_model.encode_image(images)
+            if self.use_hf:
+                # Using HuggingFace CLIP - requires normalized images
+                # HF CLIP expects images to be preprocessed: [batch, 3, 224, 224]
+                # Normalize using CLIP's preprocessing
+                import torch.nn.functional as F
+                
+                # Resize to 224x224 if needed
+                if images.shape[-2:] != (224, 224):
+                    images = F.interpolate(images, size=(224, 224), mode='bicubic', align_corners=False)
+                
+                # Normalize using CLIP normalization
+                mean = torch.tensor([0.48145466, 0.4578275, 0.40821073]).view(1, 3, 1, 1).to(self.device)
+                std = torch.tensor([0.26862954, 0.26130258, 0.27577711]).view(1, 3, 1, 1).to(self.device)
+                images = (images - mean) / std
+                
+                vision_outputs = self.clip_model_hf.vision_model(pixel_values=images)
+                visual_features = vision_outputs.pooler_output  # [batch_size, 512]
+            else:
+                # Using OpenAI CLIP
+                visual_features = self.clip_model.encode_image(images)
             visual_features = visual_features.float()
         
         # Project to desired dimension
@@ -147,9 +189,19 @@ class TextEncoder(nn.Module):
             
         else:
             # Use sentence-transformers all-mpnet-base-v2 (open-source, powerful)
-            model_name = "sentence-transformers/all-mpnet-base-v2"
-            logger.info(f"Loading {model_name} for text encoding...")
-            logger.info("NOTE: First run will download model from HuggingFace")
+            from pathlib import Path
+            
+            # Check for local model first
+            project_root = Path(__file__).parent.parent.parent
+            local_model_path = project_root / "all-mpnet-base-v2"
+            
+            if local_model_path.exists():
+                model_name = str(local_model_path)
+                logger.info(f"Loading text model from local directory: {local_model_path}")
+            else:
+                model_name = "sentence-transformers/all-mpnet-base-v2"
+                logger.info(f"Loading {model_name} for text encoding...")
+                logger.info("NOTE: First run will download model from HuggingFace")
             
             try:
                 logger.info("Loading tokenizer...")
@@ -302,8 +354,13 @@ class TripleModalEncoder(nn.Module):
             output_dim=numeric_dim
         ).to(device)
         
+        # Get actual output dimensions from encoders
+        actual_visual_dim = self.visual_encoder.visual_dim
+        actual_text_dim = 512  # Text encoder always projects to 512D
+        actual_numeric_dim = numeric_dim
+        
         # Multi-modal fusion with attention mechanism
-        total_dim = visual_dim + text_dim + numeric_dim
+        total_dim = actual_visual_dim + actual_text_dim + actual_numeric_dim
         self.fusion = nn.Sequential(
             nn.Linear(total_dim, hidden_dim),
             nn.LayerNorm(hidden_dim),
@@ -318,9 +375,9 @@ class TripleModalEncoder(nn.Module):
         ).to(device)
         
         logger.info(f"TripleModalEncoder initialized on {device}")
-        logger.info(f"  Visual: CLIP ViT-B/16 ({visual_dim}D)")
-        logger.info(f"  Text: {'OpenAI API' if use_openai else 'MPNet'} ({text_dim}D)")
-        logger.info(f"  Numeric: MLP ({numeric_dim}D)")
+        logger.info(f"  Visual: CLIP ViT-B/16 ({actual_visual_dim}D)")
+        logger.info(f"  Text: {'OpenAI API' if use_openai else 'MPNet'} ({actual_text_dim}D)")
+        logger.info(f"  Numeric: MLP ({actual_numeric_dim}D)")
         logger.info(f"  Output: {output_dim}D")
         
     def forward(

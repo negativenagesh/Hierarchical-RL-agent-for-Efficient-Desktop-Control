@@ -1,6 +1,9 @@
+uv run python src/training/train.py --visualize --total-timesteps 10000 --difficulty EASY --device cuda
+
+
 # Hierarchical RL Agent for Efficient OS Control
 
-A complete implementation of a **Hierarchical Reinforcement Learning Agent** for efficient operating system control, based on the ComputerAgent methodology. This project provides a FastAPI microservice for real-time OS automation using lightweight RL models that run on consumer hardware.
+A complete implementation of a **Hierarchical Reinforcement Learning Agent** for efficient operating system control, based on the ComputerAgent methodology. This project provides a FastAPI microservice for real-time OS automation using lightweight RL models that run on consuuv run python src/training/train.py --visualize --total-timesteps 10000 --difficulty EASY --device cudamer hardware.
 
 ## 🌟 Features
 
