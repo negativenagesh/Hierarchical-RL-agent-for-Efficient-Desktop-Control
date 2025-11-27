@@ -1,0 +1,57 @@
+[
+  {
+    "id": 1,
+    "instruction": "Open the calculator application",
+    "difficulty": "EASY",
+    "num_steps": 5,
+    "success_criteria": {
+      "window_title": "Calculator"
+    }
+  },
+  {
+    "id": 2,
+    "instruction": "Create a new text file named test.txt",
+    "difficulty": "EASY",
+    "num_steps": 7,
+    "success_criteria": {
+      "file_exists": "test.txt"
+    }
+  },
+  {
+    "id": 3,
+    "instruction": "Open file manager and navigate to Documents",
+    "difficulty": "EASY",
+    "num_steps": 6,
+    "success_criteria": {
+      "current_directory": "Documents"
+    }
+  },
+  {
+    "id": 4,
+    "instruction": "Open browser and navigate to example.com",
+    "difficulty": "MEDIUM",
+    "num_steps": 10,
+    "success_criteria": {
+      "url_contains": "example.com"
+    }
+  },
+  {
+    "id": 5,
+    "instruction": "Create a folder named Projects in Documents",
+    "difficulty": "MEDIUM",
+    "num_steps": 12,
+    "success_criteria": {
+      "directory_exists": "Documents/Projects"
+    }
+  },
+  {
+    "id": 6,
+    "instruction": "Find invoice.pdf, rename it to invoice_2024.pdf, and move to Documents",
+    "difficulty": "HARD",
+    "num_steps": 20,
+    "success_criteria": {
+      "file_exists": "Documents/invoice_2024.pdf",
+      "file_not_exists": "invoice.pdf"
+    }
+  }
+]

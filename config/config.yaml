@@ -1,0 +1,44 @@
+# Agent Configuration
+agent:
+  visual_dim: 512
+  text_dim: 256
+  numeric_dim: 64
+  state_dim: 512
+  manager_hidden_dim: 512
+  num_action_types: 7
+
+# Training Configuration
+training:
+  learning_rate: 0.0003
+  clip_epsilon: 0.2
+  value_coef: 0.5
+  entropy_coef: 0.01
+  gamma: 0.99
+  gae_lambda: 0.95
+  max_grad_norm: 0.5
+  update_epochs: 4
+  num_minibatches: 4
+  buffer_size: 2048
+  
+# Curriculum Learning
+curriculum:
+  easy_threshold: 0.6
+  medium_threshold: 0.5
+  min_steps_per_stage: 50000
+
+# Environment
+environment:
+  screen_width: 1920
+  screen_height: 1080
+  capture_width: 640
+  capture_height: 480
+  max_steps: 50
+  reward_per_step: -0.1
+  reward_success: 10.0
+  reward_failure: -5.0
+
+# Model
+model:
+  checkpoint_path: "checkpoints/final_model.pt"
+  save_interval: 10000
+  eval_interval: 5000
