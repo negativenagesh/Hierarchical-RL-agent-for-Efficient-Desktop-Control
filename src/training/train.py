@@ -10,6 +10,7 @@ from src.environment.base_env import TaskDifficulty
 from src.training.ppo_trainer import PPOTrainer
 from src.training.curriculum import CurriculumManager
 from src.utils.logger import setup_logging, get_logger
+from src.utils.visualizer import create_visualizer
 
 logger = get_logger(__name__)
 
@@ -37,6 +38,8 @@ def parse_args():
                        help="Tasks JSON file")
     parser.add_argument("--curriculum", action="store_true",
                        help="Enable curriculum learning")
+    parser.add_argument("--visualize", action="store_true",
+                       help="Enable real-time visualization during training")
     
     return parser.parse_args()
 
@@ -63,8 +66,18 @@ def main():
     logger.info(f"Environment created with {len(env.tasks)} tasks")
     
     # Create policy
+    logger.info("Creating hierarchical policy...")
     policy = HierarchicalPolicy()
-    logger.info("Policy created")
+    logger.info("Policy created successfully")
+    
+    # Create visualizer if enabled
+    visualizer = None
+    if args.visualize:
+        visualizer = create_visualizer(enabled=True)
+        if visualizer:
+            logger.info("Real-time visualizer enabled")
+        else:
+            logger.warning("Failed to create visualizer, continuing without visualization")
     
     # Create trainer
     trainer = PPOTrainer(
@@ -72,7 +85,8 @@ def main():
         env=env,
         learning_rate=args.learning_rate,
         device=str(device),
-        log_dir=args.log_dir
+        log_dir=args.log_dir,
+        visualizer=visualizer
     )
     logger.info("Trainer created")
     
@@ -84,11 +98,17 @@ def main():
     
     # Train
     logger.info("Starting training loop")
-    trainer.train(
-        total_timesteps=args.total_timesteps,
-        rollout_steps=args.rollout_steps,
-        save_dir=args.save_dir
-    )
+    try:
+        trainer.train(
+            total_timesteps=args.total_timesteps,
+            rollout_steps=args.rollout_steps,
+            save_dir=args.save_dir
+        )
+    finally:
+        # Cleanup visualizer
+        if visualizer:
+            visualizer.close()
+            logger.info("Visualizer closed")
     
     logger.info("Training complete!")
 

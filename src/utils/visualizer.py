@@ -60,9 +60,12 @@ class TrainingVisualizer:
         
         # Initialize pygame
         try:
+            logger.info("Initializing pygame for visualization...")
             pygame.init()
+            logger.info("Creating display window...")
             self.screen = pygame.display.set_mode((window_width, window_height))
             pygame.display.set_caption("Hierarchical RL Agent Training - Real-time Visualization")
+            logger.info("Loading fonts...")
             self.clock = pygame.time.Clock()
             self.font_small = pygame.font.Font(None, 24)
             self.font_medium = pygame.font.Font(None, 32)

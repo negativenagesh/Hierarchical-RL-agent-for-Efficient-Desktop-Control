@@ -12,6 +12,9 @@ from torch.utils.tensorboard import SummaryWriter
 from ..agent.policy import HierarchicalPolicy
 from ..environment.base_env import OSEnvironment
 from .replay_buffer import ReplayBuffer
+from ..utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class PPOTrainer:
@@ -36,7 +39,8 @@ class PPOTrainer:
         num_minibatches: int = 4,
         buffer_size: int = 2048,
         device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
-        log_dir: str = 'logs'
+        log_dir: str = 'logs',
+        visualizer: Optional[Any] = None
     ):
         """
         Args:
@@ -54,10 +58,15 @@ class PPOTrainer:
             buffer_size: Replay buffer size
             device: Device to train on
             log_dir: Directory for tensorboard logs
+            visualizer: Optional TrainingVisualizer instance
         """
+        logger.info("Initializing PPO Trainer...")
+        logger.info(f"Moving policy to device: {device}")
         self.policy = policy.to(device)
+        logger.info("Policy moved to device")
         self.env = env
         self.device = torch.device(device)
+        self.visualizer = visualizer
         
         # Hyperparameters
         self.learning_rate = learning_rate
@@ -72,13 +81,19 @@ class PPOTrainer:
         self.buffer_size = buffer_size
         
         # Optimizer
+        logger.info("Creating optimizer...")
         self.optimizer = optim.Adam(self.policy.parameters(), lr=learning_rate)
+        logger.info("Optimizer created")
         
         # Replay buffer
+        logger.info("Creating replay buffer...")
         self.buffer = ReplayBuffer(buffer_size)
+        logger.info("Replay buffer created")
         
         # Logging
+        logger.info(f"Creating TensorBoard writer at {log_dir}...")
         self.writer = SummaryWriter(log_dir)
+        logger.info("TensorBoard writer created")
         self.global_step = 0
         self.episode_count = 0
         
@@ -86,6 +101,8 @@ class PPOTrainer:
         self.episode_rewards: List[float] = []
         self.episode_lengths: List[int] = []
         self.success_rate: List[bool] = []
+        
+        logger.info("PPO Trainer initialization complete")
         
     def collect_rollouts(self, num_steps: int) -> Dict[str, Any]:
         """
@@ -134,6 +151,18 @@ class PPOTrainer:
             episode_length += 1
             self.global_step += 1
             
+            # Update visualizer if enabled
+            if self.visualizer and self.visualizer.is_active():
+                screenshot = obs.get('image')  # Get screenshot from observation
+                self.visualizer.update(
+                    screenshot=screenshot,
+                    action=action,
+                    reward=reward,
+                    step=self.global_step,
+                    episode=self.episode_count,
+                    metrics={'success': episode_success}
+                )
+            
             # Update for next step
             obs = next_obs
             
@@ -149,6 +178,12 @@ class PPOTrainer:
                 self.writer.add_scalar('rollout/episode_reward', episode_reward, self.global_step)
                 self.writer.add_scalar('rollout/episode_length', episode_length, self.global_step)
                 self.writer.add_scalar('rollout/success', float(episode_success), self.global_step)
+                
+                # Update visualizer with episode end
+                if self.visualizer and self.visualizer.is_active():
+                    self.visualizer.update(
+                        metrics={'success': episode_success, 'episode_end': True}
+                    )
                 
                 # Reset environment
                 obs, info = self.env.reset()

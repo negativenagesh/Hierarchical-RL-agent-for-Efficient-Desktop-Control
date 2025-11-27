@@ -30,29 +30,38 @@ class HierarchicalPolicy(nn.Module):
         screen_height: int = 1080
     ):
         super().__init__()
+        from src.utils.logger import get_logger
+        logger = get_logger(__name__)
         
         # State encoder
+        logger.info("Initializing state encoder...")
         self.encoder = StateEncoder(
             visual_dim=visual_dim,
             text_dim=text_dim,
             numeric_dim=numeric_dim,
             output_dim=state_dim
         )
+        logger.info("State encoder initialized")
         
         # Manager policy
+        logger.info("Initializing manager policy...")
         self.manager = ManagerPolicy(
             state_dim=state_dim,
             hidden_dim=manager_hidden_dim,
             num_action_types=num_action_types
         )
+        logger.info("Manager policy initialized")
         
         # Worker (hardcoded for execution)
+        logger.info("Initializing hardcoded worker...")
         self.worker = HardcodedWorker(
             screen_width=screen_width,
             screen_height=screen_height
         )
+        logger.info("Worker initialized")
         
         self.state_dim = state_dim
+        logger.info("HierarchicalPolicy initialization complete")
         
     def encode_state(self, state_dict: Dict[str, Any]) -> torch.Tensor:
         """Encode raw state to embedding"""

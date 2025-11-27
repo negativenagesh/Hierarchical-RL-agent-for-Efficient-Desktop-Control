@@ -33,7 +33,23 @@ class VisualEncoder(nn.Module):
         
         # Load CLIP model - more powerful than EfficientNet
         logger.info("Loading CLIP ViT-B/16 model for visual encoding...")
-        self.clip_model, self.preprocess = clip.load("ViT-B/16", device=device)
+        logger.info("NOTE: First run will download ~350MB model from OpenAI servers")
+        logger.info("Model will be cached in ~/.cache/clip for future use")
+        
+        try:
+            import os
+            cache_path = os.path.expanduser("~/.cache/clip")
+            if os.path.exists(cache_path):
+                logger.info(f"Using cached CLIP model from {cache_path}")
+            else:
+                logger.info("Downloading CLIP model (this may take a few minutes)...")
+            
+            self.clip_model, self.preprocess = clip.load("ViT-B/16", device=device, download_root=cache_path)
+            logger.info("CLIP model loaded successfully")
+        except Exception as e:
+            logger.error(f"Failed to load CLIP model: {e}")
+            logger.error("Please check your internet connection or manually download the model")
+            raise
         
         if freeze_backbone:
             # Freeze CLIP backbone to save memory and training time
@@ -51,6 +67,7 @@ class VisualEncoder(nn.Module):
         ).to(device)
         
         self.visual_dim = 512
+        logger.info(f"VisualEncoder initialized (output_dim={self.visual_dim})")
         
     def forward(self, images: torch.Tensor) -> torch.Tensor:
         """
@@ -132,9 +149,18 @@ class TextEncoder(nn.Module):
             # Use sentence-transformers all-mpnet-base-v2 (open-source, powerful)
             model_name = "sentence-transformers/all-mpnet-base-v2"
             logger.info(f"Loading {model_name} for text encoding...")
+            logger.info("NOTE: First run will download model from HuggingFace")
             
-            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-            self.model = AutoModel.from_pretrained(model_name).to(device)
+            try:
+                logger.info("Loading tokenizer...")
+                self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+                logger.info("Loading text model...")
+                self.model = AutoModel.from_pretrained(model_name).to(device)
+                logger.info("Text model loaded successfully")
+            except Exception as e:
+                logger.error(f"Failed to load text model: {e}")
+                logger.error("Please check your internet connection or manually download the model")
+                raise
             
             if freeze_backbone:
                 for param in self.model.parameters():
