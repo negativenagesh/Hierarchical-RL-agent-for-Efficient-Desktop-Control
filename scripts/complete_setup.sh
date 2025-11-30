@@ -9,12 +9,12 @@ echo ""
 
 # 1. Install Python dependencies
 echo "📦 Step 1: Installing Python dependencies..."
-uv pip install -e .
+pip install -e .
 
 # 2. Install CLIP
 echo ""
 echo "📦 Step 2: Installing CLIP..."
-uv pip install git+https://github.com/openai/CLIP.git
+pip install git+https://github.com/openai/CLIP.git
 
 # 3. Install OSWorld (desktop-env)
 echo ""
