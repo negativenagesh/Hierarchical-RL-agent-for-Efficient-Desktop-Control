@@ -77,8 +77,10 @@ class HardcodedWorker:
         self.move_duration = move_duration
         self.click_delay = click_delay
         
-        # Disable PyAutoGUI fail-safe for production
-        pyautogui.FAILSAFE = True
+        # Disable PyAutoGUI fail-safe for automated training
+        # Note: This removes the safety feature that stops execution when mouse moves to corner
+        # Only disable this in controlled training environments
+        pyautogui.FAILSAFE = False
         pyautogui.PAUSE = 0.05
         
     def denormalize_coordinates(
