@@ -196,5 +196,18 @@ class HierarchicalPolicy(nn.Module):
     def load(self, path: str, device: torch.device = torch.device('cpu')) -> None:
         """Load model checkpoint"""
         checkpoint = torch.load(path, map_location=device)
-        self.encoder.load_state_dict(checkpoint['encoder'])
-        self.manager.load_state_dict(checkpoint['manager'])
+        
+        # Handle both checkpoint formats:
+        # 1. Training checkpoint: {'policy_state_dict': ..., 'optimizer_state_dict': ..., ...}
+        # 2. Direct save: {'encoder': ..., 'manager': ...}
+        if 'policy_state_dict' in checkpoint:
+            # Training checkpoint format - load full policy state
+            self.load_state_dict(checkpoint['policy_state_dict'])
+        elif 'encoder' in checkpoint and 'manager' in checkpoint:
+            # Direct save format - load components separately
+            self.encoder.load_state_dict(checkpoint['encoder'])
+            self.manager.load_state_dict(checkpoint['manager'])
+        else:
+            raise ValueError(
+                "Invalid checkpoint format. Expected either 'policy_state_dict' or 'encoder'/'manager' keys."
+            )
