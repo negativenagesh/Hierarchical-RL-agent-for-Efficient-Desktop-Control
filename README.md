@@ -1,7 +1,7 @@
-# Hierarchical RL Agent for Efficient Desktop Control
+<div align="center">
 
-## Overview
-
+<h1>Hierarchical RL Agent for Efficient Desktop Control<h1>
+</div>
 Desktop automation is still a challenge for AI research. Machines' performance in playing games, detecting images and interpreting languages has been rather impressive, but the difficulty of making them doing something similar with ordinary computer tasks remains surprising. We are so used to going through applications, clicking buttons, typing, and scrolling through documents so effortlessly. These actions might look simple, but in reality, they demand a sophisticated comprehension of visual interfaces, written instructions, and accurate cursor control.
 
 This endeavor faces the challenge of establishing an up to the mark hierarchical RL agent that is capable of the desktop environment's control in an autonomous manner. The main point is that human computer interaction has a hierarchy; we do not consider it in terms of individual pixel movements and key presses. We rather operate at different levels of abstraction, making the decision on what task to do (high-level) and working out exactly how to do it (low-level). We have, in a way, replicated the hierarchical thinking in an AI agent.
