@@ -179,8 +179,9 @@ class OSWorldEnv(OSEnvironment):
             if 'window_title' in success_criteria:
                 expected_title = success_criteria['window_title']
                 current_windows = self._get_window_titles()
-                if any(expected_title.lower() in title.lower() for title in current_windows):
-                    return True, True
+                if current_windows:  # Only check if we got window titles
+                    if any(expected_title.lower() in title.lower() for title in current_windows):
+                        return True, True
             
             # Check file existence
             if 'file_exists' in success_criteria:
@@ -225,22 +226,49 @@ class OSWorldEnv(OSEnvironment):
             system = platform.system()
             
             if system == "Linux":
-                # Use wmctrl to get window titles
-                result = subprocess.run(
-                    ['wmctrl', '-l'],
-                    capture_output=True,
-                    text=True,
-                    timeout=1
-                )
-                if result.returncode == 0:
-                    lines = result.stdout.strip().split('\n')
-                    # Parse wmctrl output: window_id desktop_num hostname title
-                    titles = []
-                    for line in lines:
-                        parts = line.split(None, 3)
-                        if len(parts) >= 4:
-                            titles.append(parts[3])
-                    return titles
+                # Try wmctrl first
+                try:
+                    result = subprocess.run(
+                        ['wmctrl', '-l'],
+                        capture_output=True,
+                        text=True,
+                        timeout=1
+                    )
+                    if result.returncode == 0:
+                        lines = result.stdout.strip().split('\n')
+                        # Parse wmctrl output: window_id desktop_num hostname title
+                        titles = []
+                        for line in lines:
+                            parts = line.split(None, 3)
+                            if len(parts) >= 4:
+                                titles.append(parts[3])
+                        return titles
+                except FileNotFoundError:
+                    # wmctrl not installed, try xdotool
+                    try:
+                        result = subprocess.run(
+                            ['xdotool', 'search', '--name', '.'],
+                            capture_output=True,
+                            text=True,
+                            timeout=1
+                        )
+                        if result.returncode == 0:
+                            window_ids = result.stdout.strip().split('\n')
+                            titles = []
+                            for wid in window_ids[:10]:  # Limit to first 10
+                                name_result = subprocess.run(
+                                    ['xdotool', 'getwindowname', wid],
+                                    capture_output=True,
+                                    text=True,
+                                    timeout=0.5
+                                )
+                                if name_result.returncode == 0:
+                                    titles.append(name_result.stdout.strip())
+                            return titles
+                    except FileNotFoundError:
+                        # Neither wmctrl nor xdotool available
+                        # Silent fail - just can't check window titles
+                        pass
             
             elif system == "Darwin":  # macOS
                 # Use osascript to get window titles
@@ -270,9 +298,10 @@ class OSWorldEnv(OSEnvironment):
                 if result.returncode == 0:
                     lines = result.stdout.strip().split('\n')
                     return [line.strip() for line in lines if line.strip()]
-            
+                        
         except Exception as e:
-            print(f"Error getting window titles: {e}")
+            # Silent logging - don't spam console
+            pass
         
         return []
     
