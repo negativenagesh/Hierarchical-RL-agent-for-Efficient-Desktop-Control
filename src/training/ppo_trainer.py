@@ -31,7 +31,7 @@ class PPOTrainer:
         learning_rate: float = 3e-4,
         clip_epsilon: float = 0.2,
         value_coef: float = 0.5,
-        entropy_coef: float = 0.01,
+        entropy_coef: float = 0.05,  # Increased from 0.01 for more exploration
         gamma: float = 0.99,
         gae_lambda: float = 0.95,
         max_grad_norm: float = 0.5,
@@ -73,6 +73,9 @@ class PPOTrainer:
         self.clip_epsilon = clip_epsilon
         self.value_coef = value_coef
         self.entropy_coef = entropy_coef
+        self.initial_entropy_coef = entropy_coef
+        self.min_entropy_coef = 0.001  # Minimum entropy coefficient
+        self.entropy_decay = 0.99  # Decay factor per update
         self.gamma = gamma
         self.gae_lambda = gae_lambda
         self.max_grad_norm = max_grad_norm
@@ -347,13 +350,20 @@ class PPOTrainer:
         # Clear buffer
         self.buffer.clear()
         
+        # Decay entropy coefficient for reduced exploration over time
+        self.entropy_coef = max(
+            self.min_entropy_coef,
+            self.entropy_coef * self.entropy_decay
+        )
+        
         # Log training statistics
         stats = {
             'policy_loss': np.mean(policy_losses),
             'value_loss': np.mean(value_losses),
             'entropy': np.mean(entropies),
             'approx_kl': np.mean(approx_kls),
-            'clip_fraction': np.mean(clip_fractions)
+            'clip_fraction': np.mean(clip_fractions),
+            'entropy_coef': self.entropy_coef  # Track entropy coefficient
         }
         
         for key, value in stats.items():
@@ -406,6 +416,7 @@ class PPOTrainer:
                 print(f"Success Rate: {rollout_stats['success_rate']:.2%}")
                 print(f"Policy Loss: {train_stats['policy_loss']:.4f}")
                 print(f"Value Loss: {train_stats['value_loss']:.4f}")
+                print(f"Entropy: {train_stats['entropy']:.4f} (coef: {train_stats['entropy_coef']:.4f})")
             
             # Save checkpoint
             if self.global_step % save_interval == 0:

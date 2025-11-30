@@ -1,0 +1,179 @@
+((.venv312) ) (base) root@vidyashilp-vu-test-instance3:~/Hierarchical-RL-agent-for-Efficient-OS-Control# python src/training/train.py --visualize --device cuda                                                 
+/root/Hierarchical-RL-agent-for-Efficient-OS-Control/.venv312/lib/python3.12/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pk
+g_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+2025-11-30 08:08:55 | INFO     | __main__:main:53 - Starting training
+2025-11-30 08:08:55 | INFO     | __main__:main:54 - Arguments: {'total_timesteps': 1000000, 'rollout_steps': 2048, 'learning_rate': 0.0003, 'difficulty': 'EASY', 'device': 'cuda', 'save_dir': 'checkpoints', '
+log_dir': 'logs', 'tasks_file': 'config/tasks.json', 'curriculum': False, 'visualize': True}
+2025-11-30 08:08:55 | INFO     | __main__:main:58 - Using device: cuda
+2025-11-30 08:08:55 | INFO     | __main__:main:66 - Environment created with 3 tasks
+2025-11-30 08:08:55 | INFO     | __main__:main:69 - Creating hierarchical policy...
+2025-11-30 08:08:55 | INFO     | src.agent.policy:__init__:37 - Initializing state encoder...
+2025-11-30 08:08:55 | INFO     | src.agent.encoder:__init__:35 - Loading CLIP ViT-B/16 model for visual encoding...
+2025-11-30 08:08:55 | INFO     | src.agent.encoder:__init__:46 - Loading CLIP model from local directory: /root/Hierarchical-RL-agent-for-Efficient-OS-Control/clip-ViT-B-16/0_CLIPModel
+Using a slow image processor as `use_fast` is unset and a slow processor was saved with this model. `use_fast=True` will be the default behavior in v4.52, even if the model was saved with a slow processor. Th
+is will result in minor differences in outputs. You'll still be able to use a slow processor with `use_fast=False`.
+2025-11-30 08:08:56 | INFO     | src.agent.encoder:__init__:53 - CLIP model loaded successfully from local directory
+2025-11-30 08:08:56 | INFO     | src.agent.encoder:__init__:81 - CLIP visual encoder frozen
+2025-11-30 08:08:56 | INFO     | src.agent.encoder:__init__:94 - VisualEncoder initialized (output_dim=512, CLIP_dim=768)
+2025-11-30 08:08:56 | INFO     | src.agent.encoder:__init__:200 - Loading text model from local directory: /root/Hierarchical-RL-agent-for-Efficient-OS-Control/all-mpnet-base-v2
+2025-11-30 08:08:56 | INFO     | src.agent.encoder:__init__:207 - Loading tokenizer...
+2025-11-30 08:08:56 | INFO     | src.agent.encoder:__init__:209 - Loading text model...
+2025-11-30 08:08:56 | INFO     | src.agent.encoder:__init__:211 - Text model loaded successfully
+2025-11-30 08:08:56 | INFO     | src.agent.encoder:__init__:220 - Text encoder frozen
+2025-11-30 08:08:56 | INFO     | src.agent.encoder:__init__:377 - TripleModalEncoder initialized on cuda
+2025-11-30 08:08:56 | INFO     | src.agent.encoder:__init__:378 -   Visual: CLIP ViT-B/16 (512D)
+2025-11-30 08:08:56 | INFO     | src.agent.encoder:__init__:379 -   Text: MPNet (512D)
+2025-11-30 08:08:56 | INFO     | src.agent.encoder:__init__:380 -   Numeric: MLP (64D)
+2025-11-30 08:08:56 | INFO     | src.agent.encoder:__init__:381 -   Output: 512D
+2025-11-30 08:08:56 | INFO     | src.agent.policy:__init__:44 - State encoder initialized
+2025-11-30 08:08:56 | INFO     | src.agent.policy:__init__:47 - Initializing manager policy...
+2025-11-30 08:08:56 | INFO     | src.agent.policy:__init__:53 - Manager policy initialized
+2025-11-30 08:08:56 | INFO     | src.agent.policy:__init__:56 - Initializing hardcoded worker...
+2025-11-30 08:08:56 | INFO     | src.agent.policy:__init__:61 - Worker initialized
+2025-11-30 08:08:56 | INFO     | src.agent.policy:__init__:64 - HierarchicalPolicy initialization complete
+2025-11-30 08:08:56 | INFO     | __main__:main:71 - Policy created successfully
+2025-11-30 08:08:56 | INFO     | src.utils.visualizer:__init__:63 - Initializing pygame for visualization...
+ALSA lib confmisc.c:855:(parse_card) cannot find card '0'
+ALSA lib conf.c:5178:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5178:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1334:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5178:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5701:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2664:(snd_pcm_open_noupdate) Unknown PCM default
+2025-11-30 08:08:56 | INFO     | src.utils.visualizer:__init__:65 - Creating display window...
+2025-11-30 08:08:56 | INFO     | src.utils.visualizer:__init__:68 - Loading fonts...
+2025-11-30 08:08:56 | INFO     | src.utils.visualizer:__init__:74 - Training visualizer initialized successfully
+2025-11-30 08:08:56 | INFO     | __main__:main:78 - Real-time visualizer enabled
+2025-11-30 08:08:56 | INFO     | src.training.ppo_trainer:__init__:63 - Initializing PPO Trainer...
+2025-11-30 08:08:56 | INFO     | src.training.ppo_trainer:__init__:64 - Moving policy to device: cuda
+2025-11-30 08:08:56 | INFO     | src.training.ppo_trainer:__init__:66 - Policy moved to device
+2025-11-30 08:08:56 | INFO     | src.training.ppo_trainer:__init__:84 - Creating optimizer...
+2025-11-30 08:08:56 | INFO     | src.training.ppo_trainer:__init__:86 - Optimizer created
+2025-11-30 08:08:56 | INFO     | src.training.ppo_trainer:__init__:89 - Creating replay buffer...
+2025-11-30 08:08:56 | INFO     | src.training.ppo_trainer:__init__:91 - Replay buffer created
+2025-11-30 08:08:56 | INFO     | src.training.ppo_trainer:__init__:94 - Creating TensorBoard writer at logs...
+2025-11-30 08:08:56 | INFO     | src.training.ppo_trainer:__init__:96 - TensorBoard writer created
+2025-11-30 08:08:56 | INFO     | src.training.ppo_trainer:__init__:109 - PPO Trainer initialization complete
+2025-11-30 08:08:56 | INFO     | __main__:main:91 - Trainer created
+2025-11-30 08:08:56 | INFO     | __main__:main:100 - Starting training loop
+Starting training for 1000000 timesteps (488 updates)
+Device: cuda                                                                                                                             
+                                                                                                                                                                                                                
+================================================================================                                                                                                                                
+EPISODE 1 COMPLETE                                                                                                                                                                                              
+================================================================================                                                                                                                                
+Task: Open file manager and navigate to Documents                                                                                                                                                               
+Status: ✗ FAILED                                                                                                                                                                                                
+Steps: 5 | Total Reward: -5.50                                                                                                                                                                                  
+                                                                                                                                                                                                                
+Episode Statistics:                                                                                                                                                                                             
+  Avg Reward/Step: -1.1000 | Max: -0.1000 | Min: -5.1000                                                                                                                                                        
+  Positive Rewards: 0/5 | Negative: 5/5                                                                                                                                                                         
+                                                                                                                                                                                                                
+Action Distribution:                                                                                                                                                                                            
+  CLICK             1 ( 20.0%) ████                                                                                                                                                                             
+  RIGHT_CLICK       1 ( 20.0%) ████                                                                                                                                                                             
+  WAIT              2 ( 40.0%) ████████                                                                                                                                                                         
+  EARLY_STOP        1 ( 20.0%) ████                                                                                                                                                                             
+                                                                                                                                                                                                                
+Recent Performance (Last 10 Episodes):                                                                                                                                                                          
+  Success Rate: 0.00%                                                                                                                                                                                           
+  Avg Reward: -5.50                                                                                                                                                                                             
+  Avg Length: 5.0 steps                                                                                                                                                                                         
+                                                                                                                                                                                                                
+Overall Training Progress:                                                                                                                                                                                      
+  Total Episodes: 1                                                                                                                                                                                             
+  Total Steps: 5                                                                                                                                                                                                
+  Overall Success Rate: 0.00%                                                                                                                                                                                   
+================================================================================                                                                                                                                
+                                                                                                                                                                                                                
+                                                                                                                                                                                                                
+================================================================================                                                                                                                                
+EPISODE 2 COMPLETE                                                                                                                                                                                              
+================================================================================                                                                                                                                
+Task: Open the calculator application                                                                                                                                                                           
+Status: ✗ FAILED                                                                                                                                                                                                
+Steps: 4 | Total Reward: -5.40                                                                                                                                                                                  
+                                                                                                                                                                                                                
+Episode Statistics:                                                                                                                                                                                             
+  Avg Reward/Step: -1.3500 | Max: -0.1000 | Min: -5.1000                                                                                                                                                        
+  Positive Rewards: 0/4 | Negative: 4/4                                                                                                                                                                         
+                                                                                                                                                                                                                
+Action Distribution:                                                                                                                                                                                            
+  DOUBLE_CLICK      1 ( 25.0%) █████                                                                                                                                                                            
+  WAIT              2 ( 50.0%) ██████████                                                                                                                                                                       
+  EARLY_STOP        1 ( 25.0%) █████                                                                                                                                                                            
+                                                                                                                                                                                                                
+Recent Performance (Last 10 Episodes):                                                                                                                                                                          
+  Success Rate: 0.00%                                                                                                                                                                                           
+  Avg Reward: -5.45                                                                                                                                                                                             
+  Avg Length: 4.5 steps                                                                                                                                                                                         
+                                                                                                                                                                                                                
+Overall Training Progress:                                                                                                                                                                                      
+  Total Episodes: 2                                                                                                                                                                                             
+  Total Steps: 9                                                                                                                                                                                                
+  Overall Success Rate: 0.00%                                                                                                                                                                                   
+================================================================================                                                                                                                                
+                                                                                                                                                                                                                
+                                                                                                                                                                                                                
+================================================================================                                                                                                                                
+EPISODE 3 COMPLETE                                                                                                                                                                                              
+================================================================================                                                                                                                                
+Task: Create a new text file named test.txt                                                                                                                                                                     
+Status: ✗ FAILED                                                                                                                                                                                                
+Steps: 10 | Total Reward: -6.00                                                                                                                                                                                 
+                                                                                                                                                                                                                
+Episode Statistics:                                                                                                                                                                                             
+  Avg Reward/Step: -0.6000 | Max: -0.1000 | Min: -5.1000                                                                                                                                                        
+  Positive Rewards: 0/10 | Negative: 10/10                                                                                                                                                                      
+                                                                                                                                                                                                                
+Action Distribution:                                                                                                                                                                                            
+  CLICK             2 ( 20.0%) ████                                                                                                                                                                             
+  DOUBLE_CLICK      1 ( 10.0%) ██                                                                                                                                                                               
+  RIGHT_CLICK       2 ( 20.0%) ████                                                                                                                                                                             
+  TYPE              1 ( 10.0%) ██                                                                                                                                                                               
+  SCROLL            1 ( 10.0%) ██                                                                                                                                                                               
+  WAIT              2 ( 20.0%) ████                                                                                                                                                                             
+  EARLY_STOP        1 ( 10.0%) ██                                                                                                                                                                               
+                                                                                                                                                                                                                
+Recent Performance (Last 10 Episodes):                                                                                                                                                                          
+  Success Rate: 0.00%                                                                                                                                                                                           
+  Avg Reward: -5.63                                                                                                                                                                                             
+  Avg Length: 6.3 steps                                                                                                                                                                                         
+                                                                                                                                                                                                                
+Overall Training Progress:                                                                                                                                                                                      
+  Total Episodes: 3                                                                                                                                                                                             
+  Total Steps: 19                                                                                                                                                                                               
+  Overall Success Rate: 0.00%                                                                                                                                                                                   
+================================================================================                                                                                                                                
+                                                                                                                                                                                                                
+                                                                                                                                                                                                                
+================================================================================                                                                                                                                
+EPISODE 4 COMPLETE                                                                                                                                                                                              
+================================================================================                                                                                                                                
+Task: Open the calculator application                                                                                                                                                                           
+Status: ✗ FAILED                                                                                                                                                                                                
+Steps: 4 | Total Reward: -5.40                                                                                                                                                                                  
+                                                                                                                                                                                                                
+Episode Statistics:                                                                                                                                                                                             
+  Avg Reward/Step: -1.3500 | Max: -0.1000 | Min: -5.1000                                                                                                                                                        
+  Positive Rewards: 0/4 | Negative: 4/4                                                                                                                                                                         
+                                                                                                                                                                                                                
+Action Distribution:                                                                                                                                                                                            
+  TYPE              1 ( 25.0%) █████                                                                                                                                                                            
+  WAIT              2 ( 50.0%) ██████████                                                                                                                                                                       
+  EARLY_STOP        1 ( 25.0%) █████                                                                                                                                                                            
+                                                                                                                                                                                                                
+Recent Performance (Last 10 Episodes):                                                                                                                                                                          
+  Success Rate: 0.00%                                                                                                                                                                                           
+  Avg Reward: -5.57                                                                                                                                                                                             
+  Avg Length: 5.8 steps                                                                                                                                                                                         
+                                                                                                                                                                                                                
+Overall Training Progress:                                                                                                                                                                                      
+  Total Episodes: 4                                                                                                                                                                                             
+  Total Steps: 23                                                                                                                                                                                               
+  Overall Success Rate: 0.00%                                                                                                                                                                                   
+================================================================================                                                                                                                                
+                                 

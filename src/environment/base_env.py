@@ -67,9 +67,12 @@ class OSEnvironment(gym.Env):
         screen_width: int = 1920,
         screen_height: int = 1080,
         max_steps: int = 50,
-        reward_per_step: float = -0.1,
+        reward_per_step: float = -0.01,  # Reduced from -0.1
         reward_success: float = 10.0,
-        reward_failure: float = -5.0
+        reward_failure: float = -1.0,  # Reduced from -5.0
+        reward_progress: float = 0.5,  # New: reward for making progress
+        reward_new_action: float = 0.1,  # New: reward for trying new actions
+        enable_reward_shaping: bool = True
     ):
         super().__init__()
         
@@ -79,6 +82,14 @@ class OSEnvironment(gym.Env):
         self.reward_per_step = reward_per_step
         self.reward_success = reward_success
         self.reward_failure = reward_failure
+        self.reward_progress = reward_progress
+        self.reward_new_action = reward_new_action
+        self.enable_reward_shaping = enable_reward_shaping
+        
+        # Track agent behavior for reward shaping
+        self.action_history: List[int] = []
+        self.unique_actions_taken: set = set()
+        self.last_screenshot_hash: Optional[int] = None
         
         # Define observation space
         self.observation_space = gym.spaces.Dict({
@@ -124,6 +135,11 @@ class OSEnvironment(gym.Env):
         super().reset(seed=seed)
         
         self.step_count = 0
+        
+        # Reset progress tracking
+        self.action_history = []
+        self.unique_actions_taken = set()
+        self.last_screenshot_hash = None
         
         # Get new task (to be implemented by subclasses)
         instruction, task_id, difficulty = self._get_new_task()
@@ -175,9 +191,48 @@ class OSEnvironment(gym.Env):
         # Check if task is complete
         task_done, task_success = self._check_task_completion()
         
-        # Calculate reward
-        reward = self.reward_per_step  # Step penalty
+        # Calculate base reward
+        reward = self.reward_per_step  # Small step penalty
         
+        # Reward shaping (if enabled)
+        if self.enable_reward_shaping:
+            action_type = action['action_type']
+            
+            # 1. Exploration bonus - reward for trying new action types
+            if action_type not in self.unique_actions_taken:
+                reward += self.reward_new_action
+                self.unique_actions_taken.add(action_type)
+            
+            # 2. Diversity bonus - penalize repetitive actions
+            if len(self.action_history) >= 3:
+                if self.action_history[-3:] == [action_type] * 3:
+                    reward -= 0.2  # Penalize repeating same action 3 times
+            
+            # 3. Screen change bonus - reward for changing the screen state
+            current_hash = hash(screenshot.tobytes())
+            if self.last_screenshot_hash is not None:
+                if current_hash != self.last_screenshot_hash:
+                    reward += self.reward_progress  # Screen changed
+            self.last_screenshot_hash = current_hash
+            
+            # 4. Action-specific rewards
+            if action_type == 6:  # EARLY_STOP
+                # Penalize early stopping without success
+                if not task_success:
+                    reward -= 2.0  # Strong penalty for giving up
+            elif action_type == 5:  # WAIT
+                # Small penalty for waiting too much
+                wait_count = sum(1 for a in self.action_history[-5:] if a == 5)
+                if wait_count > 2:
+                    reward -= 0.3  # Too much waiting
+            elif action_type in [0, 1, 2]:  # Click actions
+                # Small bonus for interactive actions
+                reward += 0.05
+            
+            # Track action
+            self.action_history.append(action_type)
+        
+        # Terminal rewards
         terminated = False
         if action['action_type'] == 6:  # EARLY_STOP
             if task_success:

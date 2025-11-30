@@ -162,21 +162,119 @@ class OSWorldEnv(OSEnvironment):
         """
         Check if current task is complete
         
-        This is a placeholder - real implementation would check
-        the success criteria defined in the task.
+        This implements basic heuristics for checking task completion.
+        For production, integrate with OSWorld's evaluation framework.
         """
         if self.current_task is None:
             return False, False
         
-        # In real implementation, this would check:
-        # - Window titles
-        # - File existence
-        # - URL navigation
-        # - Application state
-        # etc.
+        success_criteria = self.current_task.get('success_criteria', {})
         
-        # For now, return False (not done) - requires OSWorld integration
-        return False, False
+        # If no criteria defined, can't check completion
+        if not success_criteria:
+            return False, False
+        
+        try:
+            # Check window title (for GUI app tasks)
+            if 'window_title' in success_criteria:
+                expected_title = success_criteria['window_title']
+                current_windows = self._get_window_titles()
+                if any(expected_title.lower() in title.lower() for title in current_windows):
+                    return True, True
+            
+            # Check file existence
+            if 'file_exists' in success_criteria:
+                file_path = Path.home() / success_criteria['file_exists']
+                if file_path.exists():
+                    return True, True
+            
+            # Check directory existence
+            if 'directory_exists' in success_criteria:
+                dir_path = Path.home() / success_criteria['directory_exists']
+                if dir_path.exists() and dir_path.is_dir():
+                    return True, True
+            
+            # Check current directory
+            if 'current_directory' in success_criteria:
+                # This is a placeholder - would need actual directory tracking
+                # For now, check if file manager is open showing Documents
+                pass
+            
+            # Check URL (for browser tasks)
+            if 'url_contains' in success_criteria:
+                # This is a placeholder - would need actual browser integration
+                pass
+            
+            # If we have criteria but none matched, task is not complete
+            return False, False
+            
+        except Exception as e:
+            print(f"Error checking task completion: {e}")
+            return False, False
+    
+    def _get_window_titles(self) -> List[str]:
+        """
+        Get list of open window titles
+        
+        This is a basic implementation using system commands.
+        """
+        import subprocess
+        import platform
+        
+        try:
+            system = platform.system()
+            
+            if system == "Linux":
+                # Use wmctrl to get window titles
+                result = subprocess.run(
+                    ['wmctrl', '-l'],
+                    capture_output=True,
+                    text=True,
+                    timeout=1
+                )
+                if result.returncode == 0:
+                    lines = result.stdout.strip().split('\n')
+                    # Parse wmctrl output: window_id desktop_num hostname title
+                    titles = []
+                    for line in lines:
+                        parts = line.split(None, 3)
+                        if len(parts) >= 4:
+                            titles.append(parts[3])
+                    return titles
+            
+            elif system == "Darwin":  # macOS
+                # Use osascript to get window titles
+                script = '''
+                tell application "System Events"
+                    get name of every window of every process
+                end tell
+                '''
+                result = subprocess.run(
+                    ['osascript', '-e', script],
+                    capture_output=True,
+                    text=True,
+                    timeout=1
+                )
+                if result.returncode == 0:
+                    return result.stdout.strip().split(', ')
+            
+            elif system == "Windows":
+                # Use PowerShell to get window titles
+                script = 'Get-Process | Where-Object {$_.MainWindowTitle} | Select-Object MainWindowTitle'
+                result = subprocess.run(
+                    ['powershell', '-Command', script],
+                    capture_output=True,
+                    text=True,
+                    timeout=1
+                )
+                if result.returncode == 0:
+                    lines = result.stdout.strip().split('\n')
+                    return [line.strip() for line in lines if line.strip()]
+            
+        except Exception as e:
+            print(f"Error getting window titles: {e}")
+        
+        return []
     
     def _get_cursor_position(self) -> Tuple[int, int]:
         """Get current cursor position"""
