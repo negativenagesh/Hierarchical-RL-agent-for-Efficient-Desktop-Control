@@ -3,7 +3,7 @@ name = "hierarchical-rl-agent-for-efficient-os-control"
 version = "0.1.0"
 description = "Hierarchical Reinforcement Learning Agent for Efficient OS Control - FastAPI Microservice"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.9,<3.13"
 authors = [
     {name = "Your Name", email = "your.email@example.com"}
 ]
@@ -20,23 +20,18 @@ dependencies = [
     "transformers",
     "timm",
     "openai",
-    "clip @ git+https://github.com/openai/CLIP.git",
     
     # Reinforcement Learning
     "gymnasium",
     "stable-baselines3",
     "tensorboard",
     
-    # OSWorld Integration
-    "osworld @ git+https://github.com/xlang-ai/OSWorld.git",
-    "docker",
-    "requests",
-    
-    # Computer Control
+    # Computer Control (install before OSWorld to avoid conflicts)
+    "numpy",
+    "opencv-python",
     "pyautogui",
     "mss",
     "pillow",
-    "opencv-python",
     "pynput",
     
     # GUI Visualization for Training
@@ -44,13 +39,14 @@ dependencies = [
     "matplotlib",
     
     # Utilities
-    "numpy",
     "pandas",
     "pyyaml",
     "python-dotenv",
     "loguru",
     "httpx",
     "python-multipart",
+    "docker",
+    "requests",
 ]
 
 [project.optional-dependencies]

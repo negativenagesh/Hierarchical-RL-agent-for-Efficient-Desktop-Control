@@ -7,23 +7,51 @@ echo "  🚀 Complete Setup for Hierarchical RL Agent"
 echo "=================================================="
 echo ""
 
-# 1. Install Python dependencies
-echo "📦 Step 1: Installing Python dependencies..."
-pip install -e .
+# Check Python version
+echo "🔍 Checking Python version..."
+python_version=$(python -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
+echo "Python version: $python_version"
 
-# 2. Install CLIP
+if [[ $(python -c 'import sys; print(sys.version_info >= (3, 13))') == "True" ]]; then
+    echo "⚠️  Warning: Python 3.13+ detected. OSWorld may have compatibility issues."
+    echo "   Recommended: Use Python 3.9-3.12 for best compatibility"
+    echo ""
+fi
+
+# 1. Install core dependencies first
+echo "📦 Step 1: Installing core Python dependencies..."
+pip install -e . --no-deps
+pip install fastapi uvicorn[standard] pydantic pydantic-settings
+pip install torch torchvision transformers timm openai
+pip install gymnasium stable-baselines3 tensorboard
+
+# 2. Install numpy and opencv BEFORE OSWorld
 echo ""
-echo "📦 Step 2: Installing CLIP..."
+echo "📦 Step 2: Installing numpy and opencv (pre-requisites)..."
+pip install "numpy<2.0"
+pip install opencv-python
+
+# 3. Install other computer control dependencies
+echo ""
+echo "📦 Step 3: Installing computer control dependencies..."
+pip install pyautogui mss pillow pynput pygame matplotlib
+pip install pandas pyyaml python-dotenv loguru httpx python-multipart docker requests
+
+# 4. Install CLIP
+echo ""
+echo "📦 Step 4: Installing CLIP..."
+pip install ftfy regex tqdm
 pip install git+https://github.com/openai/CLIP.git
 
-# 3. Install OSWorld (desktop-env)
+# 5. Install OSWorld (desktop-env) with constraints
 echo ""
-echo "📦 Step 3: Installing OSWorld (desktop-env)..."
-pip install git+https://github.com/xlang-ai/OSWorld.git
+echo "📦 Step 5: Installing OSWorld (desktop-env)..."
+echo "   This may take a while and show warnings - this is normal..."
+pip install --no-deps git+https://github.com/xlang-ai/OSWorld.git || echo "⚠️  OSWorld installation had issues, but continuing..."
 
-# 4. Setup environment file
+# 6. Setup environment file
 echo ""
-echo "⚙️  Step 4: Setting up .env file..."
+echo "⚙️  Step 6: Setting up .env file..."
 if [ ! -f ".env" ]; then
     cp .env.example .env
     echo "✅ .env file created"
@@ -31,9 +59,9 @@ else
     echo "✅ .env file already exists"
 fi
 
-# 5. Verify Docker
+# 7. Verify Docker
 echo ""
-echo "🐳 Step 5: Verifying Docker..."
+echo "🐳 Step 7: Verifying Docker..."
 if docker ps &> /dev/null; then
     echo "✅ Docker is working!"
 else
@@ -41,9 +69,9 @@ else
     echo "   Run: sudo chmod 666 /var/run/docker.sock"
 fi
 
-# 6. Test imports
+# 8. Test imports
 echo ""
-echo "🔍 Step 6: Testing imports..."
+echo "🔍 Step 8: Testing imports..."
 
 python -c "import torch; print(f'✅ PyTorch: {torch.__version__}')" 2>/dev/null || echo "⚠️  PyTorch not installed"
 python -c "import clip; print('✅ CLIP installed')" 2>/dev/null || echo "⚠️  CLIP not installed"
