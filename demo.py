@@ -200,6 +200,19 @@ def run_demo(
             'duration': action_duration,
             'reward': step_reward
         })
+        
+        # Check if task is complete
+        if action['action_name'] == 'EARLY_STOP':
+            print("\n🏁 Agent signaled task completion (EARLY_STOP)")
+            task_completed = True
+            total_reward += 10.0  # Bonus for task completion
+            break
+        
+        # Delay before next action
+        if step < max_steps - 1:
+            print(f"⏳ Waiting {delay_between_actions}s before next action...")
+            time.sleep(delay_between_actions)
+    
     # Cleanup
     screen_capture.close()
     
@@ -227,30 +240,7 @@ def run_demo(
                 status = "⚠️  Was closed"
             
             print(f"  • {app}: {status}")
-    print(f"\n🎯 Task: {instruction}")
-    
-    # Determine actual task completion
-    if apps_successfully_opened:
-        print(f"✅ TASK COMPLETED SUCCESSFULLY!")
-        print(f"   Applications opened: {', '.join(apps_successfully_opened)}")
-        task_completed = True
-        total_reward += 10.0  # Add completion bonus
-    elif task_completed:
-        print(f"✅ AGENT SIGNALED COMPLETION (EARLY_STOP)")
-    else:
-        print(f"❌ TASK NOT COMPLETED")
-    
-    print(f"\n📈 Performance Metrics:")me
-    total_steps = len(execution_log)
-    success_rate = (successful_actions / total_steps * 100) if total_steps > 0 else 0
-    avg_reward = total_reward / total_steps if total_steps > 0 else 0
-    
-    # Print final resultsps - 1:
-            print(f"⏳ Waiting {delay_between_actions}s before next action...")
-            time.sleep(delay_between_actions)
-    
-    # Cleanup
-    screen_capture.close()
+        print("─" * 80)
     
     # Calculate final statistics
     total_time = time.time() - start_time
@@ -264,7 +254,17 @@ def run_demo(
     print("=" * 80)
     
     print(f"\n🎯 Task: {instruction}")
-    print(f"{'✅ COMPLETED' if task_completed else '❌ NOT COMPLETED'}")
+    
+    # Determine actual task completion
+    if apps_successfully_opened:
+        print(f"✅ TASK COMPLETED SUCCESSFULLY!")
+        print(f"   Applications opened: {', '.join(apps_successfully_opened)}")
+        task_completed = True
+        total_reward += 10.0  # Add completion bonus
+    elif task_completed:
+        print(f"✅ AGENT SIGNALED COMPLETION (EARLY_STOP)")
+    else:
+        print(f"❌ TASK NOT COMPLETED")
     
     print(f"\n📈 Performance Metrics:")
     print(f"  • Total Steps: {total_steps}/{max_steps}")
@@ -300,23 +300,61 @@ def run_demo(
     print("=" * 80)
     
     # Analyze behavior patterns
-    if execution_log:
-        # Check for repetitive behavior
-        actions_sequence = [log['action'] for log in execution_log]
-        if len(actions_sequence) >= 3:
-            repetitive = any(
-                actions_sequence[i] == actions_sequence[i+1] == actions_sequence[i+2]
-                for i in range(len(actions_sequence) - 2)
-            )
-            if repetitive:
-                print("⚠️  Warning: Detected repetitive action patterns - agent may be stuck")
-            else:
-                print("✅ Good: Agent showed diverse action selection")
+    # Check for spatial clustering
+    click_actions = [log for log in execution_log if 'CLICK' in log['action']]
+    if len(click_actions) >= 2:
+        coords_variance = sum(
+            abs(click_actions[i]['coordinates'][0] - click_actions[i+1]['coordinates'][0]) +
+            abs(click_actions[i]['coordinates'][1] - click_actions[i+1]['coordinates'][1])
+            for i in range(len(click_actions) - 1)
+        ) / (len(click_actions) - 1)
         
-        # Check for spatial clustering
-        click_actions = [log for log in execution_log if 'CLICK' in log['action']]
-        if len(click_actions) >= 2:
-            coords_variance = sum(
+        if coords_variance < 0.2:
+            print("⚠️  Warning: Clicks concentrated in small area - may indicate limited exploration")
+        else:
+            print("✅ Good: Agent explored different screen regions")
+    
+    # Check for early stopping
+    if task_completed:
+        completion_percentage = (total_steps / max_steps) * 100
+        print(f"✅ Excellent: Task completed in {completion_percentage:.0f}% of max steps")
+    elif 'EARLY_STOP' in action_type_counts and not task_completed:
+        print("⚠️  Warning: Premature early stopping - agent may need more training")
+    
+    # Check success rate
+    if success_rate > 80:
+        print("✅ Excellent: High action success rate indicates good execution")
+    elif success_rate > 50:
+        print("⚠️  Moderate: Some actions failed - environment may be challenging")
+    else:
+        print("❌ Poor: Many actions failed - agent needs more training or environment issues")
+    
+    # Check reward trend
+    if total_steps >= 3:
+        early_reward = sum(log['reward'] for log in execution_log[:total_steps//2]) / (total_steps//2)
+        late_reward = sum(log['reward'] for log in execution_log[total_steps//2:]) / (total_steps - total_steps//2)
+        if late_reward > early_reward:
+            print("📈 Positive: Reward improved over time - agent making progress")
+        elif late_reward < early_reward:
+            print("📉 Concerning: Reward decreased over time - agent may be degrading")
+        else:
+            print("➡️  Stable: Consistent reward throughout execution")
+    
+    print("\n" + "=" * 80)
+    print(f"{'🎉 DEMO COMPLETE!' if task_completed else '⚠️  DEMO FINISHED (Task not completed)'}")
+    print("=" * 80)
+    
+    if not task_completed:
+        print("\n💡 Suggestions for improvement:")
+        print("  • Increase --max-steps to allow more time for task completion")
+        print("  • Try --stochastic mode for more exploration")
+        print("  • Adjust --delay for better UI responsiveness")
+        print("  • Continue training the model for better performance")
+    else:
+        print("\n🎊 The agent successfully completed the task!")
+        print("   Consider trying more complex instructions to test capabilities.")
+        print("➡️  Stable: Consistent reward throughout execution")
+    
     print("\n" + "=" * 80)
     print(f"{'🎉 DEMO COMPLETE!' if task_completed else '⚠️  DEMO FINISHED (Task not completed)'}")
     print("=" * 80)
@@ -345,49 +383,12 @@ def run_demo(
         print("  • Adjust --delay for better UI responsiveness")
         print("  • Continue training the model for better performance")
         print("  • Ensure the target application is installed and accessible")
-            print(f"✅ Excellent: Task completed in {completion_percentage:.0f}% of max steps")
-        elif 'EARLY_STOP' in action_type_counts and not task_completed:
-            print("⚠️  Warning: Premature early stopping - agent may need more training")
-        
-        # Check success rate
-        if success_rate > 80:
-            print("✅ Excellent: High action success rate indicates good execution")
-        elif success_rate > 50:
-            print("⚠️  Moderate: Some actions failed - environment may be challenging")
-        else:
-            print("❌ Poor: Many actions failed - agent needs more training or environment issues")
-        
-        # Check reward trend
-        if total_steps >= 3:
-            early_reward = sum(log['reward'] for log in execution_log[:total_steps//2]) / (total_steps//2)
-            late_reward = sum(log['reward'] for log in execution_log[total_steps//2:]) / (total_steps - total_steps//2)
-            if late_reward > early_reward:
-                print("📈 Positive: Reward improved over time - agent making progress")
-            elif late_reward < early_reward:
-                print("📉 Concerning: Reward decreased over time - agent may be degrading")
-            else:
-                print("➡️  Stable: Consistent reward throughout execution")
-    
-    print("\n" + "=" * 80)
-    print(f"{'🎉 DEMO COMPLETE!' if task_completed else '⚠️  DEMO FINISHED (Task not completed)'}")
-    print("=" * 80)
-    
-    if not task_completed:
-        print("\n💡 Suggestions for improvement:")
-        print("  • Increase --max-steps to allow more time for task completion")
-        print("  • Try --stochastic mode for more exploration")
-        print("  • Adjust --delay for better UI responsiveness")
-        print("  • Continue training the model for better performance")
-    else:
-        print("\n🎊 The agent successfully completed the task!")
-        print("   Consider trying more complex instructions to test capabilities.")
 
 
 def main():
-    """Main entry point"""
     import argparse
     
-    parser = argparse.ArgumentParser(description="Run trained agent demo")
+    parser = argparse.ArgumentParser(description="Run a demo of the trained agent")
     parser.add_argument(
         "--checkpoint",
         type=str,
