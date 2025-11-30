@@ -226,29 +226,39 @@ Overall Training Progress:
 
 ### Running the Trained Agent
 
-#### Live Demo (Watch Agent Control Desktop)
+After training completes, you'll have a saved model checkpoint (typically `checkpoints/final_model.pt`). This section covers how to run the trained agent both locally and in cloud environments.
 
-After training completes, run the trained agent to see it control your desktop:
+#### Running Locally (With Display)
+
+**Prerequisites:**
+- Trained model checkpoint at `checkpoints/final_model.pt`
+- Display available (macOS, Linux with X11, or Windows)
+- Mouse and keyboard control permissions
+
+**Basic Usage:**
 
 ```bash
-# Basic demo with default task
+# Run with default settings
 uv run python demo.py
 
-# Custom task
+# Run with custom task
 uv run python demo.py --instruction "Open the calculator application"
 
-# More steps and faster execution
+# Run with more steps and custom delay
 uv run python demo.py --max-steps 20 --delay 0.5
 
 # Use stochastic policy for exploration
 uv run python demo.py --stochastic
+
+# Use custom checkpoint path
+uv run python demo.py --checkpoint checkpoints/custom_model.pt
 ```
 
 **Demo Parameters:**
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `--checkpoint` | Path to model checkpoint | checkpoints/final_model.pt |
+| `--checkpoint` | Path to model checkpoint | `checkpoints/final_model.pt` |
 | `--instruction` | Task to execute | "Open the calculator application" |
 | `--max-steps` | Maximum steps | 10 |
 | `--stochastic` | Use stochastic policy | False (deterministic) |
@@ -265,9 +275,220 @@ uv run python demo.py --instruction "Open file manager and navigate to Documents
 
 # Create text file
 uv run python demo.py --instruction "Create a new text file named test.txt"
+
+# Open browser and navigate
+uv run python demo.py --instruction "Open Chrome browser" --max-steps 15
 ```
 
+**What to Expect:**
+
+The demo script will:
+1. ✅ Load the trained model from checkpoint
+2. 🔍 Check initial application states (e.g., is calculator already running?)
+3. 🎬 Execute actions step-by-step with visual feedback in terminal
+4. 📊 Display detailed execution logs (actions, coordinates, success/failure)
+5. ✅ Verify task completion (e.g., did calculator actually open?)
+6. 📈 Show comprehensive performance metrics and analysis
+
 **Safety Note:** The agent will control your mouse and keyboard. Move your mouse to the top-left corner to trigger PyAutoGUI's failsafe if needed.
+
+#### Running in Cloud/Headless Environment
+
+When running on cloud servers (AWS, GCP, Azure) or headless systems without physical displays, you need a virtual display.
+
+**Setup Virtual Display (One-Time):**
+
+```bash
+# Install Xvfb (X Virtual Framebuffer)
+sudo apt-get update
+sudo apt-get install -y xvfb x11-utils
+
+# Verify installation
+which Xvfb
+```
+
+**Method 1: Using xvfb-run (Recommended)**
+
+```bash
+# Run demo with automatic virtual display
+xvfb-run -a python demo.py
+
+# With UV
+xvfb-run -a uv run python demo.py --instruction "Open calculator"
+
+# Specify display resolution
+xvfb-run -a --server-args="-screen 0 1920x1080x24" \
+  uv run python demo.py --max-steps 15
+```
+
+**Method 2: Manual Xvfb Setup**
+
+```bash
+# Start virtual display (run once per session)
+Xvfb :99 -screen 0 1920x1080x24 &
+
+# Export display variable
+export DISPLAY=:99
+
+# Verify display is working
+xdpyinfo -display :99
+
+# Run demo normally
+uv run python demo.py --instruction "Open file manager"
+
+# Run multiple demos
+uv run python demo.py --instruction "Open calculator" --max-steps 10
+uv run python demo.py --instruction "Open text editor" --max-steps 15
+```
+
+**Method 3: Persistent Display Setup (Docker/Long-Running Servers)**
+
+Add to your shell profile (`~/.bashrc` or `~/.zshrc`):
+
+```bash
+# Start Xvfb on login if not already running
+if ! pgrep -x "Xvfb" > /dev/null; then
+    Xvfb :99 -screen 0 1920x1080x24 &
+fi
+export DISPLAY=:99
+```
+
+Then reload:
+```bash
+source ~/.bashrc  # or ~/.zshrc
+```
+
+**Cloud-Specific Instructions:**
+
+**AWS EC2:**
+```bash
+# SSH into instance
+ssh -i your-key.pem ubuntu@your-instance-ip
+
+# Setup and run
+sudo apt-get install -y xvfb
+export DISPLAY=:99
+Xvfb :99 -screen 0 1920x1080x24 &
+
+cd /path/to/Hierarchical-RL-agent-for-Efficient-OS-Control
+uv run python demo.py --checkpoint checkpoints/final_model.pt
+```
+
+**GCP Compute Engine:**
+```bash
+# SSH into instance (use GCP console or gcloud CLI)
+gcloud compute ssh your-instance-name
+
+# Same setup as above
+sudo apt-get install -y xvfb
+xvfb-run -a uv run python demo.py
+```
+
+**Azure VM:**
+```bash
+# SSH into VM
+ssh azureuser@your-vm-ip
+
+# Setup virtual display
+sudo apt-get install -y xvfb x11-utils
+export DISPLAY=:99
+Xvfb :99 -screen 0 1920x1080x24 &
+
+# Run demo
+uv run python demo.py --instruction "Open calculator"
+```
+
+**Docker Container:**
+
+```dockerfile
+# Add to your Dockerfile
+RUN apt-get update && apt-get install -y \
+    xvfb \
+    x11-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set display environment variable
+ENV DISPLAY=:99
+
+# Start Xvfb in entrypoint
+ENTRYPOINT ["/bin/bash", "-c", "Xvfb :99 -screen 0 1920x1080x24 & exec \"$@\"", "--"]
+```
+
+Then run:
+```bash
+docker run -it your-image uv run python demo.py
+```
+
+**Verifying Cloud Setup:**
+
+```bash
+# Check if Xvfb is running
+ps aux | grep Xvfb
+
+# Check display environment variable
+echo $DISPLAY
+
+# Test screen capture works
+uv run python -c "from src.environment.screenshot import ScreenCapture; sc = ScreenCapture(); print('Screen capture working!')"
+
+# Run a quick test
+uv run python demo.py --max-steps 5 --instruction "Test run"
+```
+
+**Troubleshooting Cloud Execution:**
+
+1. **Display not found:**
+   ```bash
+   # Error: "Cannot open display"
+   export DISPLAY=:99
+   ps aux | grep Xvfb  # Ensure Xvfb is running
+   ```
+
+2. **Xvfb not starting:**
+   ```bash
+   # Kill existing Xvfb processes
+   pkill Xvfb
+   
+   # Start with verbose output
+   Xvfb :99 -screen 0 1920x1080x24 -ac +extension GLX +render -noreset &
+   ```
+
+3. **Permission issues:**
+   ```bash
+   # Ensure proper permissions
+   chmod +x demo.py
+   sudo usermod -a -G video $USER
+   ```
+
+4. **Model not found:**
+   ```bash
+   # Verify checkpoint exists
+   ls -lh checkpoints/
+   
+   # Specify full path
+   uv run python demo.py --checkpoint /full/path/to/checkpoints/final_model.pt
+   ```
+
+**Performance Notes:**
+
+- **Local execution:** Full GUI responsiveness, real-time visual feedback
+- **Cloud execution:** No visual display, relies on terminal output and application state validation
+- **Screen resolution:** 1920x1080 recommended for best results (matches training setup)
+- **Network latency:** Does not affect execution (runs locally on server)
+- **Recording:** Use `screen` or `tmux` to keep sessions running after disconnect
+
+**Recording Demo Output:**
+
+```bash
+# Save terminal output to file
+uv run python demo.py --instruction "Open calculator" 2>&1 | tee demo_output.log
+
+# Run in background with nohup
+nohup xvfb-run -a uv run python demo.py > demo_run.log 2>&1 &
+
+# Check progress
+tail -f demo_run.log
+```
 
 #### Using the API
 
