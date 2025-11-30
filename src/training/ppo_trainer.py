@@ -102,6 +102,10 @@ class PPOTrainer:
         self.episode_lengths: List[int] = []
         self.success_rate: List[bool] = []
         
+        # Episode tracking for detailed logging
+        self.current_episode_actions: List[Dict[str, Any]] = []
+        self.current_episode_rewards: List[float] = []
+        
         logger.info("PPO Trainer initialization complete")
         
     def collect_rollouts(self, num_steps: int) -> Dict[str, Any]:
@@ -147,6 +151,15 @@ class PPOTrainer:
                 done=done
             )
             
+            # Track episode data for logging
+            action_info = {
+                'type': action['action_type'],
+                'coordinates': action['coordinates'],
+                'reward': reward
+            }
+            self.current_episode_actions.append(action_info)
+            self.current_episode_rewards.append(reward)
+            
             episode_reward += reward
             episode_length += 1
             self.global_step += 1
@@ -174,6 +187,17 @@ class PPOTrainer:
                 self.success_rate.append(episode_success)
                 self.episode_count += 1
                 
+                # Print detailed episode summary to terminal
+                self._print_episode_summary(
+                    episode_num=self.episode_count,
+                    episode_length=episode_length,
+                    episode_reward=episode_reward,
+                    success=episode_success,
+                    task_instruction=obs.get('instruction', 'Unknown'),
+                    actions=self.current_episode_actions,
+                    rewards=self.current_episode_rewards
+                )
+                
                 # Log episode statistics
                 self.writer.add_scalar('rollout/episode_reward', episode_reward, self.global_step)
                 self.writer.add_scalar('rollout/episode_length', episode_length, self.global_step)
@@ -184,6 +208,10 @@ class PPOTrainer:
                     self.visualizer.update(
                         metrics={'success': episode_success, 'episode_end': True}
                     )
+                
+                # Reset episode tracking
+                self.current_episode_actions = []
+                self.current_episode_rewards = []
                 
                 # Reset environment
                 obs, info = self.env.reset()
@@ -454,3 +482,61 @@ class PPOTrainer:
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.global_step = checkpoint['global_step']
         self.episode_count = checkpoint['episode_count']
+    
+    def _print_episode_summary(self, episode_num: int, episode_length: int, 
+                               episode_reward: float, success: bool,
+                               task_instruction: str, actions: List[Dict[str, Any]],
+                               rewards: List[float]) -> None:
+        """Print detailed episode summary to terminal for headless environments"""
+        
+        # Action type names
+        action_names = ['CLICK', 'DOUBLE_CLICK', 'RIGHT_CLICK', 'TYPE', 'SCROLL', 'WAIT', 'EARLY_STOP']
+        
+        # Count action types
+        action_counts = {name: 0 for name in action_names}
+        for action in actions:
+            action_type = action['type']
+            if 0 <= action_type < len(action_names):
+                action_counts[action_names[action_type]] += 1
+        
+        # Calculate statistics
+        avg_reward = np.mean(rewards) if rewards else 0
+        max_reward = max(rewards) if rewards else 0
+        min_reward = min(rewards) if rewards else 0
+        positive_rewards = sum(1 for r in rewards if r > 0)
+        negative_rewards = sum(1 for r in rewards if r < 0)
+        
+        # Recent performance
+        recent_success_rate = np.mean(self.success_rate[-10:]) if len(self.success_rate) >= 10 else np.mean(self.success_rate)
+        recent_avg_reward = np.mean(self.episode_rewards[-10:]) if len(self.episode_rewards) >= 10 else np.mean(self.episode_rewards)
+        recent_avg_length = np.mean(self.episode_lengths[-10:]) if len(self.episode_lengths) >= 10 else np.mean(self.episode_lengths)
+        
+        # Print formatted summary
+        print("\n" + "="*80)
+        print(f"EPISODE {episode_num} COMPLETE")
+        print("="*80)
+        print(f"Task: {task_instruction[:60]}{'...' if len(task_instruction) > 60 else ''}")
+        print(f"Status: {'✓ SUCCESS' if success else '✗ FAILED'}")
+        print(f"Steps: {episode_length} | Total Reward: {episode_reward:.2f}")
+        print()
+        print("Episode Statistics:")
+        print(f"  Avg Reward/Step: {avg_reward:.4f} | Max: {max_reward:.4f} | Min: {min_reward:.4f}")
+        print(f"  Positive Rewards: {positive_rewards}/{episode_length} | Negative: {negative_rewards}/{episode_length}")
+        print()
+        print("Action Distribution:")
+        for action_name, count in action_counts.items():
+            if count > 0:
+                percentage = (count / episode_length) * 100
+                bar = '█' * int(percentage / 5)  # 20 chars max
+                print(f"  {action_name:15s} {count:3d} ({percentage:5.1f}%) {bar}")
+        print()
+        print("Recent Performance (Last 10 Episodes):")
+        print(f"  Success Rate: {recent_success_rate:.2%}")
+        print(f"  Avg Reward: {recent_avg_reward:.2f}")
+        print(f"  Avg Length: {recent_avg_length:.1f} steps")
+        print()
+        print("Overall Training Progress:")
+        print(f"  Total Episodes: {episode_num}")
+        print(f"  Total Steps: {self.global_step}")
+        print(f"  Overall Success Rate: {np.mean(self.success_rate):.2%}")
+        print("="*80 + "\n")
