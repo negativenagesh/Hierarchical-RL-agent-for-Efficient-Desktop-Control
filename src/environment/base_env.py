@@ -223,13 +223,20 @@ class OSEnvironment(gym.Env):
             if action_type == 6:  # EARLY_STOP
                 # Penalize early stopping without success
                 if not task_success:
-                    # Scale penalty based on how early they're quitting
-                    # Quitting after 1 step should be heavily punished
+                    # Gradual penalty based on episode progress
+                    # Encourages taking at least 10 steps
                     steps_taken = len(self.action_history)
-                    if steps_taken < 5:
-                        reward -= 5.0  # Very strong penalty for quitting too early
+                    expected_min_steps = 10
+                    
+                    if steps_taken < expected_min_steps:
+                        # Penalty increases as episode gets shorter
+                        progress_ratio = steps_taken / expected_min_steps
+                        # Penalty ranges from -3.0 (at 0 steps) to -0.5 (at 10 steps)
+                        penalty = -3.0 * (1.0 - progress_ratio) - 0.5
+                        reward += penalty
                     else:
-                        reward -= 2.0  # Normal penalty for giving up later
+                        # Small penalty for giving up after reasonable exploration
+                        reward -= 0.5
             elif action_type == 5:  # WAIT
                 # Small penalty for waiting too much
                 wait_count = sum(1 for a in self.action_history[-5:] if a == 5)
