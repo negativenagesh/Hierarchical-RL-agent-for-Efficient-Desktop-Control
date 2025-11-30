@@ -5,7 +5,7 @@
 <div align="center">
 
 [![GitHub stars](https://img.shields.io/github/stars/negativenagesh/Hierarchical-RL-agent-for-Efficient-Desktop-Control?style=social)](https://github.com/negativenagesh/Hierarchical-RL-agent-for-Efficient-Desktop-Control)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 </div>
 
