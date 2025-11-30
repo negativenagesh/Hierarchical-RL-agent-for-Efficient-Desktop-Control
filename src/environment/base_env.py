@@ -198,6 +198,10 @@ class OSEnvironment(gym.Env):
         if self.enable_reward_shaping:
             action_type = action['action_type']
             
+            # 0. Survival bonus - reward for taking actions (encourages longer episodes)
+            if self.step_count <= 20:  # During first 20 steps
+                reward += 0.02  # Small bonus for each step
+            
             # 1. Exploration bonus - reward for trying new action types
             if action_type not in self.unique_actions_taken:
                 reward += self.reward_new_action
@@ -219,7 +223,13 @@ class OSEnvironment(gym.Env):
             if action_type == 6:  # EARLY_STOP
                 # Penalize early stopping without success
                 if not task_success:
-                    reward -= 2.0  # Strong penalty for giving up
+                    # Scale penalty based on how early they're quitting
+                    # Quitting after 1 step should be heavily punished
+                    steps_taken = len(self.action_history)
+                    if steps_taken < 5:
+                        reward -= 5.0  # Very strong penalty for quitting too early
+                    else:
+                        reward -= 2.0  # Normal penalty for giving up later
             elif action_type == 5:  # WAIT
                 # Small penalty for waiting too much
                 wait_count = sum(1 for a in self.action_history[-5:] if a == 5)
